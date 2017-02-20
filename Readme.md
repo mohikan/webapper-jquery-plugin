@@ -32,3 +32,13 @@ Include javascript libraries
 
 ### Usage
 
+```html
+<body id="app">'
+```
+
+```javascript
+
+$("#app").webapper({ debug: true, .... });
+
+```
+
