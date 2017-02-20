@@ -1,4 +1,4 @@
-##Jquery Web Application Plugin For Ajax Based Applications
+#Jquery Web Application Plugin For Ajax Based Applications
 
 ### What is it
 
@@ -11,6 +11,10 @@ If you think like me, you can feel free yourself with my plugin.
 Acctually there are a lots of famous javascript framework to develope web applications.
 I know and heart most of them, and as a acctually backend developer long time I used differents, but I feel myself more comfortable with my plugin, maybe it can help people like me.
 
+### How Is Working
+
+Webapper plugin working on html tags and attributes.
+And responses can be html or json
 
 ### What Need Extra
 
