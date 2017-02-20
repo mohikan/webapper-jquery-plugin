@@ -1,10 +1,18 @@
 ##Jquery Web Application Plugin For Ajax Based Applications
 
+### What is it
+
 I know and feel myself so comfortable with jquery, also I don't like write a lots of codes for frontend side so much, for every page and for different conditions. 
 
 If you think like me, you can feel free yourself with my plugin.
 
-### What You Need Extra
+### Why Need Use This
+
+Acctually there are a lots of famous javascript framework to develope web applications.
+I know and heart most of them, and as a acctually backend developer long time I used differents, but I feel myself more comfortable with my plugin, maybe it can help people like me.
+
+
+### What Need Extra
 
 * [Jquery](https://jquery.com/)
 * [Bootstrap](http://getbootstrap.com/)
@@ -12,4 +20,11 @@ If you think like me, you can feel free yourself with my plugin.
 * [Toaster](https://github.com/CodeSeven/toastr)
 * [Select2](https://select2.github.io/)
 * [Daterangepicker](http://www.daterangepicker.com/)
+
+### Setup
+
+Include javascript libraries
+
+
+### Usage
 
