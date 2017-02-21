@@ -1,4 +1,4 @@
-##Jquery Web Application Plugin For Ajax Based Web Applications
+## Webapper - Jquery Web Application Plugin For Ajax Based Web Applications
 
 ### What is it
 
