@@ -1,4 +1,4 @@
-#Jquery Web Application Plugin For Ajax Based Applications
+##Jquery Web Application Plugin For Ajax Based Web Applications
 
 ### What is it
 
