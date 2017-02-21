@@ -2,14 +2,14 @@
 
 ### What is it
 
-I know and feel myself so comfortable with jquery, also I don't like write a lots of codes for frontend side so much, for every page and for different conditions. 
+I feel myself so comfortable with jquery, also I don't like write a lots of codes for frontend side so much, for every page and for different conditions. 
 
 If you think like me, you can feel free yourself with my plugin.
 
 ### Why Need Use This
 
-Acctually there are a lots of famous javascript framework to develope web applications.
-I know and heart most of them, and as a acctually backend developer long time I used differents, but I feel myself more comfortable with my plugin, maybe it can help people like me.
+Acctually there are a lots of famous javascript framework to develope single page web applications.
+I know and heart most of them, and acctually as a backend developer, long time I used differents, but I feel myself more comfortable with my plugin, focusing only backend with the plugin, maybe it can help people like me.
 
 ### How Is Working
 
