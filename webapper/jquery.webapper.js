@@ -24,8 +24,8 @@ $.fn.webapper = function(options) {
             history         : true,             // keep navigation history
             keyup_timer     : 1500,             // input timer
             reflex_time     : 300,              // animations reflex time
-            live            : '/live',          // listen periodictly
-            live_timer      : 0,                // live check every seconds
+            live            : '/auth/live',     // listen periodictly
+            live_timer      : 60,               // live check every seconds
             debug           : false,            // console debug
             action          : ''
         }, options );
@@ -46,6 +46,10 @@ $.fn.webapper = function(options) {
                 if(target == 'modal'){
                     ajaxModal($(this).attr('title'), path);
                 }
+                // modal link
+                if(target == 'overlay'){
+                    overlayWindow($(this).attr('title'), path);
+                }
                 // form submit
                 if(target == 'form'){
                     $('form').submit();
@@ -56,7 +60,7 @@ $.fn.webapper = function(options) {
                 }
                 // 
             } else {
-                if(path.substring(0, 1) != '#'){ 
+                if(path != undefined && path.substring(0, 1) != '#'){ 
                     jsonResponse(path);
                 }
             }
@@ -95,12 +99,16 @@ $.fn.webapper = function(options) {
                 } else {
                     form_action = $(this).attr('action');
                     form_data = new FormData(this);
+                    activateForm(false);
                     jsonResponse(form_action, form_data);
                 }
 
             }
 
         });
+
+        // on change 
+
 
         // enable history
         if(webapper.settings.history === true){
@@ -123,27 +131,38 @@ $.fn.webapper = function(options) {
             webapper.append('<div id="loadingbar" style="display:block;position:absolute;top:0px;left:0px;height:5px;width:0px;background:'+webapper.settings.loadingbar_color+';z-index:99999;"></div>');
 
             $(document).ajaxStart(function(){
-                if(loadingbar){
+                if(webapper.settings.loadingbar){
                     $('#loadingbar').width('0px').show().width('10%');
                 }
             }).ajaxSend(function(){
-                if(loadingbar){
+                if(webapper.settings.loadingbar){
                     $('#loadingbar').delay(600).width('33%');
                 }
             }).ajaxComplete(function(){
-                if(loadingbar){
+                if(webapper.settings.loadingbar){
                     $('#loadingbar').width('100%').delay(600).fadeOut(300);
                 } else {
-                    loadingbar = true;
+                    webapper.settings.loadingbar = true;
                 }
+                activatePage();
             });
         }
 
+        // load scripts
+
         // add modal boxes
-        webapper.append('<div class="modal fade small-modal" id="modal-message" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-message text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success" onClick="confirmIt()">Confirm</button></div></div></div></div><div class="modal fade small-modal" id="modal-ajaxContent" tabindex="-1" role="dialog" aria-labelledby="myModalLabel"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-ajaxContent text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success" onClick="confirmIt()">Confirm</button></div></div></div></div>');
+        webapper.append('<div class="modal fade small-modal" id="modal-message" tabindex="-1" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-message text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success" onClick="confirmIt()">Confirm</button></div></div></div></div><div class="modal fade" id="modal-ajaxContent" tabindex="-1" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-ajaxContent text-c"></div></div></div></div></div>');
+
+        // flash message check
+        if($('.flashdata').html() != ''){
+            toastr[$('.flashdata').data('type')]($('.flashdata').html());
+        }
 
         // activate page 
         activatePage();
+
+        // live feed
+        liveFeed(webapper.settings.live, webapper.settings.live_timer);
 
         // status
         logger('webapper loaded');
@@ -151,7 +170,7 @@ $.fn.webapper = function(options) {
     }
 
     // load json response
-    var jsonResponse = function(url, post_data){
+    var jsonResponse = function(url, post_data, history){
         if(current_action == ""){
             
             if(post_data != undefined){
@@ -160,7 +179,11 @@ $.fn.webapper = function(options) {
             } else {
                 method = 'GET';
                 current_action = "process";
-                historyAdd(url);
+                if(history != false){
+                    historyAdd(url);
+                } else {
+                    webapper.settings.loadingbar = false;
+                }
             }
 
             console.log("url : " + url);
@@ -175,13 +198,13 @@ $.fn.webapper = function(options) {
                 processData: false,
                 contentType: false,
                 success: function(data){
-                    doWorks(data);
                     current_action = "";
+                    doWorks(data);
+                    activateForm(true);
                 },
                 error: function(data) {
-                    $(webapper.settings.content).html(data.responseText);
                     current_action = "";
-                    activatePage();
+                    $(webapper.settings.content).html(data.responseText);
                 }
             });
         }
@@ -248,11 +271,28 @@ $.fn.webapper = function(options) {
         }
     }
 
+    // enable/disable form
+    var activateForm = function(status){
+        if(status === false){
+            $(webapper).find('input, textarea, button, select').prop("disabled", true);
+        } else {
+            $(webapper).find('input, textarea, button, select').prop("disabled", false);
+            $('.focusme').focus();
+        }
+    }
+
     // activate page
     var activatePage = function(){
         $('[rel=select2]').select2({ width: '100%' });
         $(':input').inputmask();
         $('.focusme').focus();
+    }
+
+    // live feed
+    var liveFeed = function(url, timer){
+        window.setInterval(function(){
+            jsonResponse(url, undefined, false);
+        }, (timer * 1000));
     }
 
     // modal box functions 
@@ -287,11 +327,15 @@ $.fn.webapper = function(options) {
     }
 
     var ajaxModal = function(title, url){
-        $('#modal-ajaxContent .modal-dialog').addClass('wide-modal');
+        $('#modal-ajaxContent .modal-dialog').addClass('modal-lg');
         $('#modal-ajaxContent .modal-body').addClass('ajax-modal');
         $('#modal-ajaxContent .modal-title').html(title);
         $('#modal-ajaxContent').modal('show');
         $('#modal-ajaxContent .modal-ajaxContent').load(url);
+    }
+
+    var overlayWindow = function(title, url){
+        // overlay window
     }
 
     // logger
