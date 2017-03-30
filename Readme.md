@@ -42,12 +42,13 @@ $("#app").webapper({ debug: true, .... });
 
 ```
 
-### Convert Links to ajax requests
+### Link Behaves
 
 Any Regular Link Call Ajax Request
 
 ```html
-<a href="/link_path">link text</a>'
+// Any Regular Link Call Ajax Request
+<a href="/link_path">link text</a>
 ```
 
 Link without ajax
