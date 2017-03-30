@@ -42,3 +42,36 @@ $("#app").webapper({ debug: true, .... });
 
 ```
 
+### Convert Links to ajax requests
+
+Any Regular Link Call Ajax Request
+
+```html
+<a href="/link_path">link text</a>'
+```
+
+Link without ajax
+
+```html
+<a href="/link_path" target="main">link text</a>'
+```
+
+Load Ajax Response to Modal Window
+
+```html
+<a href="/link_path" target="modal">link text</a>'
+```
+
+Load Ajax Response to Overlay Window
+
+```html
+<a href="/link_path" target="overlay">link text</a>'
+```
+
+Any Element has link behaves
+
+```html
+<button href="/link_path" class="link">link text</button>'
+```
+
+
