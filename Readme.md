@@ -47,32 +47,31 @@ $("#app").webapper({ debug: true, .... });
 Any Regular Link Call Ajax Request
 
 ```html
-// Any Regular Link Call Ajax Request
 <a href="/link_path">link text</a>
 ```
 
 Link without ajax
 
 ```html
-<a href="/link_path" target="main">link text</a>'
+<a href="/link_path" target="main">link text</a>
 ```
 
 Load Ajax Response to Modal Window
 
 ```html
-<a href="/link_path" target="modal">link text</a>'
+<a href="/link_path" target="modal">link text</a>
 ```
 
 Load Ajax Response to Overlay Window
 
 ```html
-<a href="/link_path" target="overlay">link text</a>'
+<a href="/link_path" target="overlay">link text</a>
 ```
 
 Any Element has link behaves
 
 ```html
-<button href="/link_path" class="link">link text</button>'
+<button href="/link_path" class="link">link text</button>
 ```
 
 
