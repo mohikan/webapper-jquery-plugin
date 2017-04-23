@@ -74,5 +74,3 @@ $("#app").webapper({ debug: true, .... });
 <button href="/link_path" class="link">link text</button>
 ```
 
-
-selman tarafından eklendi 2
