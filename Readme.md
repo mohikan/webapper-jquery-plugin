@@ -142,6 +142,19 @@ $("#app").webapper({ debug: true, .... });
 ```
 
 
+```html
+{
+  "type": "success",
+  "notificaiton": "Your profile updated successfuly :)",
+  "update": {
+    "#avatar":
+    {
+      "src": "new_image_path"
+    }
+  },
+  "load": "load_new_page_url"
+}
+```
 
 
 ### Settings
