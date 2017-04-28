@@ -74,3 +74,31 @@ $("#app").webapper({ debug: true, .... });
 <button href="/link_path" class="link">link text</button>
 ```
 
+### Form Behaves
+
+> Any Regular Form Call Ajax Request
+
+> Form nosubmit
+
+```html
+<form action="/form_action" rel="nosubmit"> .. </form>
+```
+
+> Confirm form before submit
+
+```html
+<form action="/form_action" rel="confirm" data-message="Are you sure ?"> .. </form>
+```
+
+### Form Validation
+
+
+
+### Json Responses
+
+
+
+### Settings
+
+
+
