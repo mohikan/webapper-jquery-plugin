@@ -96,6 +96,12 @@ $("#app").webapper({ debug: true, .... });
 
 ### Json Responses
 
+```html
+{
+  "redirect": "to_adres"
+}
+```
+
 
 
 ### Settings
