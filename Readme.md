@@ -98,9 +98,49 @@ $("#app").webapper({ debug: true, .... });
 
 ```html
 {
-  "redirect": "to_adres"
+  "redirect": "to_url"
 }
 ```
+
+```html
+{
+  "load": "load_to_content_url"
+}
+```
+
+```html
+{
+  "type": "Warning",
+  "title": "Title of Message",
+  "message": "Some message with alert "
+}
+```
+
+```html
+{
+  "type": "Warning",
+  "notificaiton": "Some message with toaster notificaiton "
+}
+```
+
+```html
+{
+  "form_errors": codeigniter form errors
+}
+```
+
+```html
+{
+  "table": "json table data to load new data"
+}
+```
+
+```html
+{
+  "update": "update any html element as jquery style"
+}
+```
+
 
 
 
