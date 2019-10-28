@@ -13,28 +13,32 @@ $.fn.webapper = function(options) {
 
     var webapper = this;
     var current_action = "";
+    var user_request = false;
+    var action_target = "";
 
     webapper.init = function(){
     
         webapper.settings = $.extend({
-            content         : '#content',       // dynamic content area
-            last_content    : '',               // last loaded content
-            loadingbar      : true,             // ajax loading bar
-            loadingbar_color: '#CC0000',        // ajax loading bar color
-            history         : true,             // keep navigation history
-            keyup_timer     : 1500,             // input timer
-            reflex_time     : 300,              // animations reflex time
-            live            : '/auth/live',     // listen periodictly
-            live_timer      : 60,               // live check every seconds
-            debug           : false,            // console debug
+            content         : '#content',           // dynamic content area
+            last_content    : '',                   // last loaded content
+            loadingbar      : true,                 // ajax loading bar
+            loadingbar_color: '#CC0000',            // ajax loading bar color
+            history         : true,                 // keep navigation history
+            keyup_timer     : 1500,                 // input timer
+            reflex_time     : 300,                  // animations reflex time
+            live            : '/dashboard/live',    // listen periodictly
+            live_timer      : 30,                   // live check every seconds
+            translate       : '',                   // translate laguages end point or 
+            language        : '',                   // default language for translate
+            debug           : true,                 // console debug
             action          : ''
         }, options );
-
 
         // links
         webapper.on('click', 'a, .link', function(e){
             e.preventDefault();
             logger('link clicked');
+            action_target = webapper.settings.content;
             path = $(this).attr('href');
             target = $(this).attr('target');
             if(target != undefined){
@@ -44,10 +48,12 @@ $.fn.webapper = function(options) {
                 }
                 // modal link
                 if(target == 'modal'){
+                    action_target = '#modals';
                     ajaxModal($(this).attr('title'), path);
                 }
                 // modal link
                 if(target == 'overlay'){
+                    action_target = '#overlay';
                     overlayWindow($(this).attr('title'), path);
                 }
                 // form submit
@@ -58,57 +64,67 @@ $.fn.webapper = function(options) {
                 if(target == 'confirm'){
                     confirmModal('Confirm', $(this).data('confirm'), 'link', path);
                 }
+                // confirmit
+                if(target == 'confirmer'){
+                    $('#modal-message').modal('hide');
+                    // confirm link
+                    if(confirmType == "link"){
+                        jsonResponse(confirmTarget);
+                    }
+                    // confirm form
+                    if(confirmType == "form"){
+                        $('form').submit();
+                    }
+                }
                 // 
             } else {
                 if(path != undefined && path.substring(0, 1) != '#'){ 
                     jsonResponse(path);
                 }
             }
-
         });
 
         // forms
         webapper.on('submit', 'form', function(e){
             
             e.preventDefault();
-            logger('form submited');
 
-            $("div.has-error").removeClass("has-error");
-
-            // required fields
-            check_requireds = 0;
-            $(this).find('.required').each(function(i, e){
-                if($(e).val() == ""){
-                    $(e).parent("div").addClass("has-error");
-                    check_requireds ++;
+            if($(this).attr("rel") != undefined){
+                // no submit
+                if($(this).attr("rel") == "nosubmit"){
+                    // do not submit
                 }
-            });
-
-            if(check_requireds == 0){
-
-                if($(this).attr("rel") != undefined){
-                    // no submit
-                    if($(this).attr("rel") == "nosubmit"){
-                        // do nothing
-                    }
-                    // confirm
-                    if($(this).attr("rel") == "confirm"){
-                        confirmModal('Confirm', $(this).data("message"), 'form', $(this));
-                    }
-                    //
-                } else {
-                    form_action = $(this).attr('action');
-                    form_data = new FormData(this);
-                    activateForm(false);
-                    jsonResponse(form_action, form_data);
+                // confirm
+                if($(this).attr("rel") == "confirm"){
+                    confirmModal('Confirm', $(this).data("message"), 'form', $(this));
                 }
-
+                //
+            } else {
+                form_action = $(this).attr('action');
+                form_data = new FormData(this);
+                $.each($('input[type="file"]'), function(){
+                    if($(this).attr('name') != undefined && $(this).val()){
+                        form_data.append($(this).attr('name'), this);
+                    }
+                });
+                activateForm(false);
+                jsonResponse(form_action, form_data);
             }
 
         });
 
         // on change 
+        webapper.on('change', '.onchange', function(e){
+            logger('changed');
+            path = $(this).attr('href');
+            jsonResponse(path, undefined, false);
+        });
 
+        // printbox
+        $('#printbox').on('load', function(){
+            window.frames["printbox"].focus();
+            window.frames["printbox"].print();
+        });
 
         // enable history
         if(webapper.settings.history === true){
@@ -128,6 +144,7 @@ $.fn.webapper = function(options) {
 
         // ajax loading bar
         if(webapper.settings.loadingbar === true){
+            
             webapper.append('<div id="loadingbar" style="display:block;position:absolute;top:0px;left:0px;height:5px;width:0px;background:'+webapper.settings.loadingbar_color+';z-index:99999;"></div>');
 
             $(document).ajaxStart(function(){
@@ -144,25 +161,27 @@ $.fn.webapper = function(options) {
                 } else {
                     webapper.settings.loadingbar = true;
                 }
-                activatePage();
             });
+        
         }
 
         // load scripts
 
         // add modal boxes
-        webapper.append('<div class="modal fade small-modal" id="modal-message" tabindex="-1" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-message text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success" onClick="confirmIt()">Confirm</button></div></div></div></div><div class="modal fade" id="modal-ajaxContent" tabindex="-1" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-ajaxContent text-c"></div></div></div></div></div>');
+        $('#modals').html('<div class="modal fade small-modal" tabindex="-1" id="modal-message" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-message text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success link" target="confirmer">Confirm</button></div></div></div></div><div class="modal fade" id="modal-ajaxContent" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-ajaxContent text-c"></div></div></div></div></div>');
 
-        // flash message check
-        if($('.flashdata').html() != ''){
-            toastr[$('.flashdata').data('type')]($('.flashdata').html());
-        }
+        // on modal closed
+        $('#modal-ajaxContent').on('hidden.bs.modal', function () {
+            $('#modal-ajaxContent .modal-ajaxContent').html('');
+        });
 
         // activate page 
         activatePage();
 
         // live feed
-        liveFeed(webapper.settings.live, webapper.settings.live_timer);
+        if(webapper.settings.live_timer > 0){
+            liveFeed(webapper.settings.live, webapper.settings.live_timer);
+        }
 
         // status
         logger('webapper loaded');
@@ -185,26 +204,45 @@ $.fn.webapper = function(options) {
                     webapper.settings.loadingbar = false;
                 }
             }
-
-            console.log("url : " + url);
-            console.log("current : " + current_action);
             
             $.ajax({
+                method: method,
                 type: method,
                 url: url,
                 data: post_data,
                 cache: false,
-                dataType: "json",
                 processData: false,
                 contentType: false,
-                success: function(data){
+                complete:function(jqXHR){
+
                     current_action = "";
-                    doWorks(data);
-                    activateForm(true);
-                },
-                error: function(data) {
-                    current_action = "";
-                    $(webapper.settings.content).html(data.responseText);
+                    
+                    if(jqXHR.status == 200){
+
+                        try
+                        {
+                            var jsonObject = jQuery.parseJSON(jqXHR.responseText);
+                            doWorks(jsonObject);
+                        }
+                        catch(e)
+                        {
+                            $(webapper.settings.content).html(jqXHR.responseText);
+                            activatePage();
+                        }
+
+                        if(history != false){
+                            activateForm(true);
+                        }
+
+                    } else {
+                        if(jqXHR.status == 503){
+                            window.location.href = "/";
+                        } else {
+                            toastr['error']('error : ' + jqXHR.status);
+                            activateForm(true);
+                        }
+                    }
+
                 }
             });
         }
@@ -228,8 +266,8 @@ $.fn.webapper = function(options) {
         // form errors
         if(data.form_errors != undefined){
             for(error in data.form_errors){
-                console.log('form error :' + error + " -> " + data.form_errors[error]);
-                $(".form-control[name="+error+"]").parent(".form-group").addClass("has-error");
+                logger('form error :' + error + " -> " + data.form_errors[error]);
+                $(".form-control[name='"+error+"']").closest(".form-group").addClass("has-error");
             }
         }
         // table
@@ -238,17 +276,11 @@ $.fn.webapper = function(options) {
         }
         // update
         if(data.update != undefined){
-            for(element in data.update){
-                for(foo in data.update[element]){
-                    if(typeof(data.update[element][foo]) === 'object'){
-                        for(bar in data.update[element][foo]){
-                            $(element)[foo](bar, data.update[element][foo][bar]);
-                        }
-                    } else {
-                        $(element)[foo](data.update[element][foo]);
-                    }
-                }
-            }
+            htmlUpdate(data.update);
+        }
+        // print
+        if(data.print != undefined){
+            $('#printbox').attr('src', data.print);
         }
         // load
         if(data.load != undefined){
@@ -259,6 +291,33 @@ $.fn.webapper = function(options) {
             $('input:hidden[name='+data.csrf_name+']').val(data.csrf_hash);
         }
         // end
+    }
+
+    // update
+    var htmlUpdate = function(elements){
+        for(element in elements){
+            for(foo in elements[element]){
+                if(typeof(elements[element][foo]) === 'object'){
+                    for(bar in elements[element][foo]){
+                        $(element)[foo](bar, elements[element][foo][bar]);
+                    }
+                } else {
+                    $(element)[foo](elements[element][foo]);
+                }
+            }
+        }
+        /*
+        for(key in elements){
+            if(elements.hasOwnProperty(key)){
+                if(typeof(elements[key]) === 'object'){
+                    logger(key + ' -> object ');
+                    htmlUpdate(key, elements[key]);
+                } else {
+                    logger(key + ' ->' + elements[key]);
+                }
+            }
+        }
+        */
     }
 
     // add history
@@ -274,18 +333,33 @@ $.fn.webapper = function(options) {
     // enable/disable form
     var activateForm = function(status){
         if(status === false){
-            $(webapper).find('input, textarea, button, select').prop("disabled", true);
+            $(action_target + ' input, textarea, button, select').prop("disabled", true);
         } else {
-            $(webapper).find('input, textarea, button, select').prop("disabled", false);
-            $('.focusme').focus();
+            $(action_target + ' input, textarea, button, select').not('.disabled').prop("disabled", false);
         }
     }
 
     // activate page
     var activatePage = function(){
-        $('[rel=select2]').select2({ width: '100%' });
-        $(':input').inputmask();
-        $('.focusme').focus();
+        // disabled elements
+        if($(action_target + ' form').attr('type') == 'edit'){
+            $('.notedit').removeClass('notedit').addClass('disabled').prop('disabled', true);
+        }
+        // select2
+        if($(action_target + ' .select2').length){
+            $(action_target + ' .select2').select2({ allowClear: true, width: '100%' }).removeAttr("rel");
+        }
+        //$('[rel=datepicker]').daterangepicker({ opens: 'left', singleDatePicker: true, locale: {"format": "DD/MM/YYYY", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] } }).removeAttr("rel");
+        //$('[rel=datetimepicker]').daterangepicker({ opens: 'left', singleDatePicker: true,  timePicker: true, timePicker24Hour: true, pick12HourFormat: false, locale: {"format": "DD/MM/YYYY HH:mm", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] } }).removeAttr("rel");
+        //$('[rel=daterangepicker]').daterangepicker({ opens: 'left', alwaysShowCalendars: true, locale: {"format": "DD/MM/YYYY", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] }, ranges: { 'Bugün': [moment(), moment()], 'Dün': [moment().subtract(1, 'days'), moment().subtract(1, 'days')], 'Bu Ay': [moment().startOf('month'), moment().endOf('month')], 'Geçen Ay': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')] } }).removeAttr("rel");
+        // input mask
+        if($(action_target + ' .masked').length){
+            $(action_target + ' .masked').inputmask();
+        }
+        // table sort
+        if($(action_target + ' .table_sortable').length){
+           table_sortable(action_target);
+        }
     }
 
     // live feed
@@ -313,7 +387,7 @@ $.fn.webapper = function(options) {
         $('#modal-message').modal('show');
     }
 
-    var confirmModal = function(title, message, type, target){   
+    var confirmModal = function(title, message, type, target){
         fixModal();
         
         confirmTarget = target;
@@ -331,11 +405,34 @@ $.fn.webapper = function(options) {
         $('#modal-ajaxContent .modal-body').addClass('ajax-modal');
         $('#modal-ajaxContent .modal-title').html(title);
         $('#modal-ajaxContent').modal('show');
-        $('#modal-ajaxContent .modal-ajaxContent').load(url);
+        $('#modal-ajaxContent .modal-ajaxContent').load(url, undefined, activatePage);
     }
 
     var overlayWindow = function(title, url){
         // overlay window
+    }
+
+    var table_sortable = function(target){
+        $(target + ' .table_sortable').each(function(i, rows){
+            current_orders = "";
+            $(rows).find('tr').each(function(j, row){
+                current_orders += $(row).attr('id') + "-" + $(row).data('ord') + ":";
+            });
+            $(rows).data('current_orders', current_orders);
+            $(rows).tableDnD({
+                onDrop: function(rows, row){
+                    new_orders = "";
+                    $(rows).find('tr').each(function(j, row){
+                        new_orders += $(row).attr('id') + "-" + $(row).data('ord') + ":";
+                    });
+                    $(rows).data('new_orders', new_orders);
+                    form_data = new FormData();
+                    form_data.append('current_orders', current_orders);
+                    form_data.append('new_orders', new_orders);
+                    jsonResponse($(target + ' .table_sortable').data('sort'), form_data, false);
+                }
+            });
+        });
     }
 
     // logger
