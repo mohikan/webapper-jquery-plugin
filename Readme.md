@@ -141,7 +141,7 @@ $("#app").webapper({ debug: true, .... });
 }
 ```
 
-
+## Example Multiple Actions in Response
 ```html
 {
   "type": "success",
