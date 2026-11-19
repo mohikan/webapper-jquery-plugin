@@ -2,7 +2,7 @@
 
 ### What is it
 
-I feel myself so comfortable with jquery, also I don't like write a lots of codes for frontend side so much, for every page and for different conditions. 
+I feel myself so comfortable with jquery, also I don't like write a lots of codes for frontend side so much, for every page and for different conditions.
 
 If you think like me, you can feel free yourself with my plugin.
 
@@ -14,33 +14,48 @@ I know and heart most of them, and acctually as a backend developer, long time I
 ### How Is Working
 
 Webapper plugin working on html tags and attributes.
-And responses can be html or json
+And responses can be html or json.
+
+When the response is **JSON**, it is a **command list** (`redirect`, toast, modal message, form errors, `load`, `render`, `update`...) and the plugin executes them. When the response is **not** JSON (plain HTML 200), it is treated as a fragment and injected into the `content` area.
 
 ### What Need Extra
 
-* [Jquery](https://jquery.com/)
-* [Bootstrap](http://getbootstrap.com/)
-* [Input Mask](http://github.com/RobinHerbots/jquery.inputmask)
-* [Toaster](https://github.com/CodeSeven/toastr)
-* [Select2](https://select2.github.io/)
-* [Daterangepicker](http://www.daterangepicker.com/)
+* [Jquery](https://jquery.com/) — required
+* AdminAlert (`alert.js`) — optional: modal / offcanvas / confirm / toast. Without it toasts fall back to `console.log`, confirm falls back to `window.confirm`, modal & offcanvas do not work.
+* [Select2](https://select2.github.io/), [Input Mask](http://github.com/RobinHerbots/jquery.inputmask), tableDnD — only needed if you use the `.select2` / `.masked` / `.table_sortable` classes (started automatically after each load)
 
 ### Setup
 
 Include javascript libraries
 
-
-### Usage
-
 ```html
-<body id="app">'
+<script src="jquery.min.js"></script>
+<script src="webapper.js"></script>
+<!-- optional: AdminAlert for modal/offcanvas/confirm/toast -->
+<script src="alert.js"></script>
+<script>
+$(function () {
+    // element wraps the whole page, so clicks/submits are delegated
+    $("#app").webapper({
+        content: '#page-content',   // area where non-JSON HTML responses are injected
+        debug: true
+    });
+});
+</script>
 ```
 
-```javascript
+Double initialization is guarded (`webapper-initialized`).
 
-$("#app").webapper({ debug: true, .... });
+### Options
 
-```
+| Default | Description |
+|---|---|
+| `content: '#content'` | selector for non-JSON GET/HTML fragment responses |
+| `loadingbar: true` | 5px ajax progress bar on top |
+| `loadingbar_color: '#CC0000'` | progress bar color |
+| `history: true` | `pushState` + `popstate` (back/forward) support |
+| `live: '/dashboard/live'`, `live_timer: 30` | periodic GET (0 = disabled) |
+| `debug: true` | `console.log` output (set `false` in production) |
 
 ### Link Behaves
 
@@ -56,16 +71,34 @@ $("#app").webapper({ debug: true, .... });
 <a href="/link_path" target="main">link text</a>
 ```
 
-> Load Ajax Response to Modal Window
+> Load Ajax Response to Modal Window (AdminAlert.form — response must contain `#modal-form`)
 
 ```html
-<a href="/link_path" target="modal">link text</a>
+<a href="/link_path" target="modal" title="Window title">link text</a>
 ```
 
-> Load Ajax Response to Overlay Window
+> Load Ajax Response to Overlay Window (AdminAlert.offcanvas — response must contain `#offcanvas-form`)
 
 ```html
-<a href="/link_path" target="overlay">link text</a>
+<a href="/link_path" target="overlay" title="Window title">link text</a>
+```
+
+> Submit the closest form
+
+```html
+<a href="/form_action" target="form">submit</a>
+```
+
+> Confirm before GET (AdminAlert.confirm)
+
+```html
+<a href="/link_path" target="confirm" data-title="Delete" data-confirm="Are you sure?">delete</a>
+```
+
+> Open in new tab (plugin does not touch it)
+
+```html
+<a href="/link_path" target="_blank">link text</a>
 ```
 
 > Any Element has link behaves
@@ -74,9 +107,24 @@ $("#app").webapper({ debug: true, .... });
 <button href="/link_path" class="link">link text</button>
 ```
 
+> Trigger GET on change (reads `href`)
+
+```html
+<select class="onchange" href="/list?filter=1"> .. </select>
+```
+
+> Active link state inside a `.ap-links` group (click moves `.active` in the group)
+
+```html
+<div class="ap-links">
+  <a class="ap-link" href="/page/1">One</a>
+  <a class="ap-link" href="/page/2">Two</a>
+</div>
+```
+
 ### Form Behaves
 
-> Any Regular Form Call Ajax Request
+> Any Regular Form Call Ajax Request — serialized as `FormData` **POST**, fields are disabled while sending, previous error marks are cleared.
 
 > Form nosubmit
 
@@ -90,25 +138,25 @@ $("#app").webapper({ debug: true, .... });
 <form action="/form_action" rel="confirm" data-message="Are you sure ?"> .. </form>
 ```
 
-### Form Validation
+> `input[type=file]` fields are appended to FormData manually (empty files skipped)
 
-
+> On a validation error response the form **stays open** and the fields are marked (see `form_errors` below).
 
 ### Json Responses
 
-```html
+```json
 {
   "redirect": "to_url"
 }
 ```
 
-```html
+```json
 {
   "load": "load_to_content_url"
 }
 ```
 
-```html
+```json
 {
   "type": "Warning",
   "title": "Title of Message",
@@ -116,48 +164,145 @@ $("#app").webapper({ debug: true, .... });
 }
 ```
 
-```html
+```json
 {
-  "type": "Warning",
-  "notificaiton": "Some message with toaster notificaiton "
+  "type": "success",
+  "notification": "Some message with toast notification "
 }
 ```
 
-```html
+```json
 {
-  "form_errors": codeigniter form errors
+  "form_errors": { "email": "E-mail is required" }
 }
 ```
 
-```html
+```json
 {
-  "table": "json table data to load new data"
+  "update": { "#counter": { "text": "12" } }
 }
 ```
 
-```html
+```json
 {
-  "update": "update any html element as jquery style"
+  "load": {
+    "#sidebar": ["/fragments/sidebar", "replace"],
+    "#feed": ["/fragments/feed", "end"]
+  }
 }
+```
+
+`load` as an object: each key is a selector, the value is a URL (or `[url, mode]`).
+Mode is `replace` (default) / `begin` / `end` — only that element is updated, the page content stays.
+
+```json
+{
+  "print": "/report.pdf"
+}
+```
+
+```json
+{
+  "csrf_name": "csrf_test_name",
+  "csrf_hash": "abc123"
+}
+```
+
+#### Render (build HTML from template + data)
+
+No extra request needed — the server sends a template and rows, the plugin builds the HTML and injects it:
+
+```json
+{
+  "type": "success",
+  "notification": "Row added",
+  "render": {
+    "#users tbody": {
+      "method": "end",
+      "template": "<tr><td>{firstname}</td><td>{surname}</td></tr>",
+      "data": [
+        { "firstname": "Ayşe", "surname": "Yılmaz" },
+        { "firstname": "Mehmet", "surname": "Demir" }
+      ]
+    }
+  }
+}
+```
+
+| Field | Description |
+|---|---|
+| `method` | `end` = append, `begin` = prepend, `replace` = replace content (default). Case-insensitive, invalid values fall back to `replace` |
+| `template` | HTML string; `{key}` placeholders are filled once per `data` row |
+| `data` | array of rows (one render per row) **or** a single object; empty → no HTML produced |
+
+* Placeholder **values are HTML-escaped** (`& < > " '`) — template itself can contain any HTML, data never injects raw markup.
+* Unknown placeholders (`{nope}`) are **left as-is** (not blanked).
+* Missing selector is silently skipped (`debug` mode logs it).
+* Works together with `load` / `update` / `notification` in the same response.
+
+PHP example (before `json_encode`):
+
+```php
+$response['render']['#users tbody'] = [
+    'method'   => 'end',
+    'template' => '<tr><td>{firstname}</td><td>{surname}</td></tr>',
+    'data'     => $rows,   // [['firstname' => 'Ayşe', 'surname' => 'Yılmaz'], ...]
+];
 ```
 
 ## Example Multiple Actions in Response
-```html
+
+```json
 {
   "type": "success",
-  "notificaiton": "Your profile updated successfuly :)",
+  "notification": "Your profile updated successfuly :)",
   "update": {
-    "#avatar":
-    {
-      "src": "new_image_path"
-    }
+    "#avatar": { "src": "new_image_path" }
   },
   "load": "load_new_page_url"
 }
 ```
 
-
 ### Settings
 
+See **Options** above. Example:
 
+```javascript
+$("#app").webapper({
+  content: '#page-content',
+  history: true,
+  loadingbar: true,
+  debug: false
+});
+```
 
+### AdminAlert contract (optional)
+
+The plugin calls these when `window.AdminAlert` exists:
+
+```javascript
+AdminAlert[type]('', message)                 // success | error | warning | info — toast
+AdminAlert.confirm({ title, message, type, showCancel, onConfirm, onCancel })
+AdminAlert.form({ title, url, onLoad, onSubmit(data, formData, action) })   // modal
+AdminAlert.offcanvas({ title, url, onLoad, onSubmit(data, formData, action) })
+```
+
+Everything except modal/offcanvas works without AdminAlert.
+
+### Behaviors
+
+* **Single active request**: clicking again while a navigation is in flight queues the click; when the current request finishes the **last clicked** runs (form submits are not queued, they are dropped).
+* **History**: `pushState` on GET; back/forward (`popstate`) re-loads `pathname+search` without a full page draw.
+* **Active link**: after each completed request, `.active` is synced on `.sidebar-nav .ap-link` only.
+* **CSRF**: on POST the `csrf_cookie_name` cookie value is appended to FormData as `csrf_test_name` (CodeIgniter 3 pattern). Adjust this block for other backends.
+* **Activate page**: after new content loads, `.select2` / `.masked` / `.table_sortable` are initialized — these libraries must be on the page or it will throw; simply don't use those classes if you don't need them.
+
+### Known quirks
+
+* A response body that **looks like** JSON is parsed as JSON (try/catch) — don't start your HTML fragments with `{"...`.
+* `#anchor` links are swallowed; use `target="main"` or leave the link native (`target="_blank"` is fine too).
+* Form submits do not wait for GET navigation; the queue is navigation-only.
+
+## About
+
+Jquery Web Application Plugin For Ajax Based Applications
