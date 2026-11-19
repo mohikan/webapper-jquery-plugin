@@ -13,8 +13,20 @@ $.fn.webapper = function(options) {
 
     var webapper = this;
     var current_action = "";
-    var user_request = false;
+    var pending_nav = null;
     var action_target = "";
+    var current_form = null;
+
+    // toast notifications via AdminAlert
+    var notify = function(type, message){
+        var t = String(type || 'info').toLowerCase();
+        if(t == 'danger'){ t = 'error'; }
+        if(window.AdminAlert && typeof AdminAlert[t] === 'function'){
+            AdminAlert[t]('', message);
+        } else if(window.console){
+            console.log('[webapper] ' + message);
+        }
+    }
 
     webapper.init = function(){
     
@@ -24,21 +36,31 @@ $.fn.webapper = function(options) {
             loadingbar      : true,                 // ajax loading bar
             loadingbar_color: '#CC0000',            // ajax loading bar color
             history         : true,                 // keep navigation history
-            keyup_timer     : 1500,                 // input timer
-            reflex_time     : 300,                  // animations reflex time
             live            : '/dashboard/live',    // listen periodictly
             live_timer      : 30,                   // live check every seconds
-            translate       : '',                   // translate laguages end point or 
-            language        : '',                   // default language for translate
-            debug           : true,                 // console debug
-            action          : ''
+            debug           : true                  // console debug
         }, options );
 
         // links
         webapper.on('click', 'a, .link', function(e){
+            // new-tab links keep native browser behaviour (preventDefault oncesi)
+            if($(this).attr('target') === '_blank'){
+                return;
+            }
             e.preventDefault();
             logger('link clicked');
             action_target = webapper.settings.content;
+            current_form = null;
+
+            // active link state (ap-links group)
+            if($(this).hasClass('ap-link')){
+                var group = $(this).closest('.ap-links');
+                if(group.length){
+                    group.find('.ap-link').removeClass('active');
+                    $(this).addClass('active');
+                }
+            }
+
             path = $(this).attr('href');
             target = $(this).attr('target');
             if(target != undefined){
@@ -48,35 +70,23 @@ $.fn.webapper = function(options) {
                 }
                 // modal link
                 if(target == 'modal'){
-                    action_target = '#modals';
+                    action_target = '.modal-overlay';
                     ajaxModal($(this).attr('title'), path);
                 }
-                // modal link
+                // overlay link
                 if(target == 'overlay'){
-                    action_target = '#overlay';
+                    action_target = '.offcanvas';
                     overlayWindow($(this).attr('title'), path);
                 }
                 // form submit
                 if(target == 'form'){
-                    $('form').submit();
+                    $(this).closest('form').submit();
                 }
                 // confirm
                 if(target == 'confirm'){
-                    confirmModal('Confirm', $(this).data('confirm'), 'link', path);
+                    confirmModal($(this).data('title') || 'Confirm', $(this).data('confirm'), 'link', path);
                 }
-                // confirmit
-                if(target == 'confirmer'){
-                    $('#modal-message').modal('hide');
-                    // confirm link
-                    if(confirmType == "link"){
-                        jsonResponse(confirmTarget);
-                    }
-                    // confirm form
-                    if(confirmType == "form"){
-                        $('form').submit();
-                    }
-                }
-                // 
+                //
             } else {
                 if(path != undefined && path.substring(0, 1) != '#'){ 
                     jsonResponse(path);
@@ -86,23 +96,32 @@ $.fn.webapper = function(options) {
 
         // forms
         webapper.on('submit', 'form', function(e){
-            
+
+            // nosubmit forms are not handled by webapper, keep native submit behaviour
+            if($(this).attr("rel") == "nosubmit"){
+                return;
+            }
+
             e.preventDefault();
 
-            if($(this).attr("rel") != undefined){
-                // no submit
-                if($(this).attr("rel") == "nosubmit"){
-                    // do not submit
-                }
-                // confirm
-                if($(this).attr("rel") == "confirm"){
-                    confirmModal('Confirm', $(this).data("message"), 'form', $(this));
-                }
-                //
-            } else {
+            action_target = webapper.settings.content;
+            current_form = $(this);
+
+            var rel_value = $(this).attr("rel");
+            var confirmed = false;
+            if($(this).data('webapper-confirmed')){
+                confirmed = true;
+                $(this).removeData('webapper-confirmed');
+            }
+
+            if(rel_value == "confirm" && !confirmed){
+                confirmModal('Confirm', $(this).data("message"), 'form', $(this));
+            } else if(rel_value == undefined || confirmed){
+                current_form.find('.form-control').removeClass('is-invalid').closest(".form-group").removeClass("has-error");
+                current_form.find('.invalid-feedback-js').remove();
                 form_action = $(this).attr('action');
                 form_data = new FormData(this);
-                $.each($('input[type="file"]'), function(){
+                current_form.find('input[type="file"]').each(function(){
                     if($(this).attr('name') != undefined && $(this).val()){
                         form_data.append($(this).attr('name'), this);
                     }
@@ -117,7 +136,7 @@ $.fn.webapper = function(options) {
         webapper.on('change', '.onchange', function(e){
             logger('changed');
             path = $(this).attr('href');
-            jsonResponse(path, undefined, false);
+            jsonResponse(path);
         });
 
         // printbox
@@ -131,15 +150,9 @@ $.fn.webapper = function(options) {
             // enable history
             if(window.history && window.history.pushState){
                 $(window).on('popstate', function() {
-                    jsonResponse(window.location.pathname, false);
+                    jsonResponse(window.location.pathname + window.location.search, false);
                 });
             }
-        }
-
-        // set toastr
-        toastr.options = {
-            "timeOut": "3000",
-            "positionClass": "toast-top-right"
         }
 
         // ajax loading bar
@@ -165,16 +178,6 @@ $.fn.webapper = function(options) {
         
         }
 
-        // load scripts
-
-        // add modal boxes
-        $('#modals').html('<div class="modal fade small-modal" tabindex="-1" id="modal-message" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-message text-c"></div></div><div class="modal-footer"><button type="button" class="btn btn-small btn-default" data-dismiss="modal">Cancel</button><button type="button" class="btn btn-small btn-success link" target="confirmer">Confirm</button></div></div></div></div><div class="modal fade" id="modal-ajaxContent" role="dialog"><div class="modal-dialog" role="document"><div class="modal-content"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button><h4 class="modal-title" id="myModalLabel"></h4></div><div class="modal-body"><div class="modal-ajaxContent text-c"></div></div></div></div></div>');
-
-        // on modal closed
-        $('#modal-ajaxContent').on('hidden.bs.modal', function () {
-            $('#modal-ajaxContent .modal-ajaxContent').html('');
-        });
-
         // activate page 
         activatePage();
 
@@ -195,6 +198,13 @@ $.fn.webapper = function(options) {
             if(post_data != undefined){
                 method = 'POST';
                 current_action = "form_process";
+                // csrf token (CI3 yalnizca $_POST okur; cookie'den body'ye ekle)
+                if(window.FormData && post_data instanceof FormData){
+                    var _csrf = (document.cookie.match(/(?:^|;\s*)csrf_cookie_name=([^;]*)/) || [])[1];
+                    if(_csrf && !post_data.has('csrf_test_name')){
+                        post_data.append('csrf_test_name', decodeURIComponent(_csrf));
+                    }
+                }
             } else {
                 method = 'GET';
                 current_action = "process";
@@ -230,7 +240,7 @@ $.fn.webapper = function(options) {
                             activatePage();
                         }
 
-                        if(history != false){
+                        if(history != false || current_form){
                             activateForm(true);
                         }
 
@@ -238,19 +248,37 @@ $.fn.webapper = function(options) {
                         if(jqXHR.status == 503){
                             window.location.href = "/";
                         } else {
-                            toastr['error']('error : ' + jqXHR.status);
+                            notify('error', 'error : ' + jqXHR.status);
                             activateForm(true);
                         }
                     }
 
+                    current_form = null;
+
+                    if(pending_nav){
+                        var queued_nav = pending_nav;
+                        pending_nav = null;
+                        jsonResponse(queued_nav.url, undefined, queued_nav.history);
+                    } else {
+                        syncActiveLink();
+                    }
+
                 }
             });
+        } else if(post_data == undefined){
+            // hizli arka arkaya tiklamalarda navigasyonu beklet, sonrakini iptal et
+            pending_nav = { url: url, history: history };
+            logger('busy -> navigasyon beklemeye alindi: ' + url);
         }
     }
 
     // do works
     var doWorks = function(data){
         logger(data);
+        // form modal: hata yoksa kapat (redirect navigasyonu zaten tumunu atar)
+        if(data.form_errors == undefined){
+            $('.modal-overlay').has('#modal-form').remove();
+        }
         // redirect
         if(data.redirect != undefined){
             location.href = data.redirect;
@@ -261,18 +289,23 @@ $.fn.webapper = function(options) {
         }
         // notificaitons
         if(data.notification != undefined){
-            toastr[data.type](data.notification);
+            notify(data.type, data.notification);
         }
-        // form errors
+        // form errors (sadece gonderilen formun uzerinde)
         if(data.form_errors != undefined){
+            var errorScope = (current_form && current_form.length) ? current_form : $();
+            if(!errorScope.length){
+                logger('form_errors: gonderilen form bulunamadi, isaret atlandi');
+            }
+            errorScope.find('.form-control').removeClass('is-invalid').closest(".form-group").removeClass("has-error");
+            errorScope.find('.invalid-feedback-js').remove();
             for(error in data.form_errors){
                 logger('form error :' + error + " -> " + data.form_errors[error]);
-                $(".form-control[name='"+error+"']").closest(".form-group").addClass("has-error");
+                var errField = errorScope.find(".form-control[name='"+error+"']");
+                errField.addClass('is-invalid').closest(".form-group").addClass("has-error");
+                errField.siblings('.invalid-feedback-js').remove();
+                errField.after('<small class="text-danger invalid-feedback-js">' + data.form_errors[error] + '</small>');
             }
-        }
-        // table
-        if(data.table != undefined){
-            /* update table */
         }
         // update
         if(data.update != undefined){
@@ -284,7 +317,17 @@ $.fn.webapper = function(options) {
         }
         // load
         if(data.load != undefined){
-            jsonResponse(data.load);
+            if(typeof data.load === 'string'){
+                jsonResponse(data.load);
+            } else {
+                for(sel in data.load){
+                    loadFragment(sel, data.load[sel]);
+                }
+            }
+        }
+        // render: sabit template + data ile html uret
+        if(data.render != undefined){
+            renderHtml(data.render);
         }
         // set csrf
         if(data.csrf_name != undefined){
@@ -292,6 +335,101 @@ $.fn.webapper = function(options) {
         }
         // end
     }
+
+    // load fragment: GET yanitini sadece hedef elemana yukle
+    // load: { "#selector": "/url" }  veya  { "#selector": ["/url", "begin|end|replace"] }
+    // mod (varsayilan replace): replace = icerigi degistir, begin = basina ekle, end = sonuna ekle
+    var loadFragment = function(sel, spec){
+        var url = Array.isArray(spec) ? spec[0] : spec;
+        var mode = (Array.isArray(spec) && spec[1]) ? spec[1] : 'replace';
+        if(typeof url !== 'string'){
+            logger('load: eleman hedefi url degil -> ' + sel);
+            return;
+        }
+        var $el = $(sel);
+        if(!$el.length){
+            logger('load: eleman bulunamadi -> ' + sel);
+            return;
+        }
+        $.ajax({
+            url: url,
+            method: 'GET',
+            cache: false,
+            success: function(html){
+                if(mode === 'begin'){
+                    $el.prepend(html);
+                } else if(mode === 'end'){
+                    $el.append(html);
+                } else {
+                    $el.html(html);
+                }
+                activatePage();
+            },
+            error: function(xhr){
+                notify('error', 'load : ' + xhr.status + ' -> ' + url);
+            }
+        });
+    };
+
+    // html escape (render degerleri icin)
+    var escapeHtml = function(str){
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    };
+
+    // render: { "#selector": { method, template, data } }
+    // method: end = append, begin = prepend, replace = html (default)
+    // template: {key} placeholderlari; data: satir dizisi (veya tek object)
+    // degerler html-escape edilir; bilinmeyen placeholder aynen kalir
+    var renderHtml = function(specs){
+        if(typeof specs !== 'object' || specs === null || Array.isArray(specs)){
+            logger('render: gecersiz yanit (selector objesi bekleniyor)');
+            return;
+        }
+        for(sel in specs){
+            var spec = specs[sel];
+            if(!spec || typeof spec.template !== 'string'){
+                logger('render: template yok -> ' + sel);
+                continue;
+            }
+            var method = String(spec.method || 'replace').toLowerCase();
+            if(method !== 'begin' && method !== 'end'){
+                method = 'replace';
+            }
+            var rows = Array.isArray(spec.data) ? spec.data
+                     : (spec.data != null && typeof spec.data === 'object' ? [spec.data] : []);
+            var html = '';
+            for(var i = 0; i < rows.length; i++){
+                var row = rows[i];
+                html += spec.template.replace(/\{([^{}]+)\}/g, function(m, key){
+                    key = String(key).replace(/^\s+|\s+$/g, '');
+                    if(row && typeof row === 'object' && Object.prototype.hasOwnProperty.call(row, key)){
+                        var v = row[key];
+                        return escapeHtml(v == null ? '' : v);
+                    }
+                    return m;
+                });
+            }
+            var $el = $(sel);
+            if(!$el.length){
+                logger('render: eleman bulunamadi -> ' + sel);
+                continue;
+            }
+            if(method === 'begin'){
+                $el.prepend(html);
+            } else if(method === 'end'){
+                $el.append(html);
+            } else {
+                $el.html(html);
+            }
+            logger('render: ' + method + ' -> ' + sel + ' (' + rows.length + ' satir)');
+        }
+        activatePage();
+    };
 
     // update
     var htmlUpdate = function(elements){
@@ -306,18 +444,6 @@ $.fn.webapper = function(options) {
                 }
             }
         }
-        /*
-        for(key in elements){
-            if(elements.hasOwnProperty(key)){
-                if(typeof(elements[key]) === 'object'){
-                    logger(key + ' -> object ');
-                    htmlUpdate(key, elements[key]);
-                } else {
-                    logger(key + ' ->' + elements[key]);
-                }
-            }
-        }
-        */
     }
 
     // add history
@@ -330,12 +456,26 @@ $.fn.webapper = function(options) {
         }
     }
 
-    // enable/disable form
+    // sidebar aktif linkini mevcut url ile esle (sadece sidebar-nav — toolbar'daki ap-links gruplari server render ile gelir)
+    var syncActiveLink = function(){
+        var path = window.location.pathname.replace(/\/+$/, '') || '/';
+        $('.sidebar-nav .ap-link').each(function(){
+            var href = ($(this).attr('href') || '#').replace(/\/+$/, '');
+            var match = (href === '/panel')
+                ? (path === href)
+                : (path === href || path.indexOf(href + '/') === 0);
+            $(this).toggleClass('active', match);
+        });
+    }
+
+    // enable/disable form (sadece gonderilen form, yoksa action_target alani)
     var activateForm = function(status){
+        var scope = (current_form && current_form.length) ? current_form : $(action_target);
+        var elements = scope.find('input, textarea, button, select');
         if(status === false){
-            $(action_target + ' input, textarea, button, select').prop("disabled", true);
+            elements.prop("disabled", true);
         } else {
-            $(action_target + ' input, textarea, button, select').not('.disabled').prop("disabled", false);
+            elements.not('.disabled').prop("disabled", false);
         }
     }
 
@@ -349,9 +489,6 @@ $.fn.webapper = function(options) {
         if($(action_target + ' .select2').length){
             $(action_target + ' .select2').select2({ allowClear: true, width: '100%' }).removeAttr("rel");
         }
-        //$('[rel=datepicker]').daterangepicker({ opens: 'left', singleDatePicker: true, locale: {"format": "DD/MM/YYYY", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] } }).removeAttr("rel");
-        //$('[rel=datetimepicker]').daterangepicker({ opens: 'left', singleDatePicker: true,  timePicker: true, timePicker24Hour: true, pick12HourFormat: false, locale: {"format": "DD/MM/YYYY HH:mm", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] } }).removeAttr("rel");
-        //$('[rel=daterangepicker]').daterangepicker({ opens: 'left', alwaysShowCalendars: true, locale: {"format": "DD/MM/YYYY", "applyLabel": "Tamam", "cancelLabel": "Vazgeç", "fromLabel": "", "toLabel": "kadar", "customRangeLabel": "Özel", "daysOfWeek": ["Pz","Pt","Sa","Çr","Pr","Cm","Ct"], "monthNames": ["Ocak","Şubat","Mart","Nisan","Mayıs","Haziran","Temmuz","Ağustos","Eylül","Ekim","Kasım","Aralık"] }, ranges: { 'Bugün': [moment(), moment()], 'Dün': [moment().subtract(1, 'days'), moment().subtract(1, 'days')], 'Bu Ay': [moment().startOf('month'), moment().endOf('month')], 'Geçen Ay': [moment().subtract(1, 'month').startOf('month'), moment().subtract(1, 'month').endOf('month')] } }).removeAttr("rel");
         // input mask
         if($(action_target + ' .masked').length){
             $(action_target + ' .masked').inputmask();
@@ -369,47 +506,79 @@ $.fn.webapper = function(options) {
         }, (timer * 1000));
     }
 
-    // modal box functions 
-    var fixModal = function(){
-        $('#modal-message .modal-dialog').removeClass('wide-modal');
-        $('#modal-message .modal-body').removeClass('ajax-modal');
-        $('#modal-message .modal-header').attr('class','modal-header');
-        $('#modal-message .modal-title').html('');
-        $('#modal-message .modal-message').html('');
-        $('#modal-message .modal-footer').hide();
+    // window box functions (AdminAlert)
+
+    // map server message level to AdminAlert type
+    var alertType = function(level){
+        var t = String(level || 'info').toLowerCase();
+        if(t == 'error' || t == 'danger'){ return 'danger'; }
+        if(t == 'success'){ return 'success'; }
+        if(t == 'warning'){ return 'warning'; }
+        return 'info';
     }
 
+    // alert box (single button)
     var alertModal = function(title, message, level){
-        fixModal();
-        if(level != undefined){ $('#modal-message .modal-header').addClass(level); }
-        $('#modal-message .modal-title').html(title);
-        $('#modal-message .modal-message').html(message);
-        $('#modal-message').modal('show');
+        if(window.AdminAlert && typeof AdminAlert.confirm === 'function'){
+            AdminAlert.confirm({
+                title: title || 'Notice',
+                message: message,
+                type: alertType(level),
+                showCancel: false
+            });
+        } else {
+            logger('alert: ' + title + ' -> ' + message);
+        }
     }
 
+    // confirm box
     var confirmModal = function(title, message, type, target){
-        fixModal();
-        
-        confirmTarget = target;
-        confirmType = type;
-        confirm = '';
-
-        $('#modal-message .modal-title').html(title);
-        $('#modal-message .modal-message').html(message);
-        $('#modal-message .modal-footer').show();
-        $('#modal-message').modal('show');
+        var proceed = function(){
+            if(type == 'link'){ jsonResponse(target); }
+            if(type == 'form'){
+                target.data('webapper-confirmed', true);
+                target.submit();
+            }
+        };
+        if(window.AdminAlert && typeof AdminAlert.confirm === 'function'){
+            AdminAlert.confirm({
+                title: title || 'Confirm',
+                message: message,
+                type: 'warning',
+                onConfirm: proceed,
+                onCancel: function(){ current_form = null; }
+            });
+        } else if(window.confirm(message)){
+            proceed();
+        }
     }
 
+    // ajax content in modal window
     var ajaxModal = function(title, url){
-        $('#modal-ajaxContent .modal-dialog').addClass('modal-lg');
-        $('#modal-ajaxContent .modal-body').addClass('ajax-modal');
-        $('#modal-ajaxContent .modal-title').html(title);
-        $('#modal-ajaxContent').modal('show');
-        $('#modal-ajaxContent .modal-ajaxContent').load(url, undefined, activatePage);
+        if(!window.AdminAlert || typeof AdminAlert.form !== 'function'){ return; }
+        AdminAlert.form({
+            title: title || '',
+            url: url,
+            onLoad: activatePage,
+            onSubmit: function(data, formData, action){
+                current_form = $('.modal-overlay #modal-form');
+                jsonResponse(action || url, formData);
+            }
+        });
     }
 
+    // ajax content in offcanvas window
     var overlayWindow = function(title, url){
-        // overlay window
+        if(!window.AdminAlert || typeof AdminAlert.offcanvas !== 'function'){ return; }
+        AdminAlert.offcanvas({
+            title: title || '',
+            url: url,
+            onLoad: activatePage,
+            onSubmit: function(data, formData, action){
+                current_form = $('.offcanvas #offcanvas-form');
+                jsonResponse(action || url, formData);
+            }
+        });
     }
 
     var table_sortable = function(target){
@@ -442,7 +611,11 @@ $.fn.webapper = function(options) {
         }
     }
 
-    // init webapper
+    // init webapper (guard against double initialization)
+    if(webapper.data('webapper-initialized')){
+        return;
+    }
+    webapper.data('webapper-initialized', true);
     webapper.init();
 
 };
