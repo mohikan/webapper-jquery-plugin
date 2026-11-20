@@ -1,0 +1,381 @@
+/*
+ * AdminAlert companion stylesheet (webapper plugin)
+ *
+ * Load BEFORE your theme so your theme can override the defaults:
+ *   <link rel="stylesheet" href="alert/alert.css">
+ *   <link rel="stylesheet" href="your-theme.css">
+ *
+ * Icons use Google Material Symbols Outlined (icon ligatures like "check_circle"):
+ *   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block">
+ *
+ * Sections: fallback CSS variables -> buttons used by dialogs -> toast/modal/offcanvas
+ */
+
+/* Fallback values for the variables used below — override them in your theme. */
+:root {
+  --font-primary: 'Inter', sans-serif;
+  --color-primary: #4f46e5;
+  --color-primary-hover: #4338ca;
+  --color-bg: #f1f5f9;
+  --color-surface: #ffffff;
+  --color-border: #e2e8f0;
+  --color-text: #1e293b;
+  --color-text-secondary: #64748b;
+  --color-success: #16a34a;
+  --color-danger: #dc2626;
+  --color-warning: #d97706;
+  --color-info: #2563eb;
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-xl: 1rem;
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1);
+  --transition-fast: 150ms ease;
+  --sidebar-width: 260px;
+  --sidebar-collapsed-width: 70px;
+}
+
+/* Buttons used by AdminAlert dialogs (subset of the panel style.css) */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: var(--radius-md);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-text {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  font-family: var(--font-primary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.btn-text:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.text-muted { color: var(--color-text-secondary); }
+
+/* --- toast / modal / offcanvas (verbatim from the panel toast.css) --- */
+
+.admin-toast-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: var(--sidebar-width);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  transition: left 0.3s ease;
+}
+
+body.sidebar-collapsed .admin-toast-container {
+  left: var(--sidebar-collapsed-width);
+}
+
+@media (max-width: 768px) {
+  .admin-toast-container {
+    left: 0;
+  }
+}
+
+.admin-toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  width: 100%;
+  pointer-events: auto;
+  animation: slideDown 0.3s ease;
+  color: white;
+}
+
+.admin-toast.success { background: var(--color-success); }
+.admin-toast.danger { background: var(--color-danger); }
+.admin-toast.warning { background: var(--color-warning); }
+.admin-toast.info { background: var(--color-info); }
+
+.admin-toast-icon {
+  font-size: 28px;
+  color: white;
+}
+
+.admin-toast-content {
+  flex: 1;
+}
+
+.admin-toast-message {
+  font-size: 0.9375rem;
+  color: white;
+  font-weight: 600;
+}
+
+.admin-toast-close {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.8);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+}
+
+.admin-toast-close:hover {
+  color: white;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+@keyframes iconBounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+  padding: var(--space-md);
+}
+
+.modal-box {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 420px;
+  animation: scaleIn 0.2s ease;
+}
+
+.modal-box-lg {
+  max-width: 420px;
+}
+
+@media (min-width: 768px) {
+  .modal-box-lg {
+    max-width: 600px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .modal-box-lg {
+    max-width: 720px;
+  }
+}
+
+.modal-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.modal-header .material-symbols-outlined {
+  font-size: 24px;
+}
+
+.modal-header .material-symbols-outlined.warning { color: var(--color-warning); }
+.modal-header .material-symbols-outlined.danger { color: var(--color-danger); }
+.modal-header .material-symbols-outlined.success { color: var(--color-success); }
+
+.modal-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-header-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-xl) var(--space-lg) var(--space-md);
+}
+
+.modal-header-center h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.modal-icon {
+  font-size: 64px;
+  animation: iconBounce 0.4s ease;
+}
+
+.modal-icon.warning { color: var(--color-warning); }
+.modal-icon.danger { color: var(--color-danger); }
+.modal-icon.success { color: var(--color-success); }
+.modal-icon.info { color: var(--color-info); }
+
+.modal-body {
+  padding: var(--space-lg);
+  color: var(--color-text-secondary);
+  font-size: 0.875rem;
+  line-height: 1.6;
+}
+
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-md);
+}
+
+.modal-form-grid .form-group.full-width {
+  grid-column: 1 / -1;
+}
+
+.modal-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.offcanvas-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 10000;
+  animation: fadeIn 0.2s ease;
+}
+
+.offcanvas {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  max-width: 100%;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-lg);
+  z-index: 10001;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+}
+
+.offcanvas.show {
+  transform: translateX(0);
+}
+
+.offcanvas-header {
+  padding: var(--space-lg);
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.offcanvas-header h3 {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.offcanvas-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+  padding: var(--space-xs);
+  border-radius: var(--radius-sm);
+  display: flex;
+}
+
+.offcanvas-close:hover {
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.offcanvas-body {
+  flex: 1;
+  padding: var(--space-lg);
+  overflow-y: auto;
+}
+
+.offcanvas-footer {
+  padding: var(--space-md) var(--space-lg);
+  border-top: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 480px) {
+  .modal-form-grid {
+    grid-template-columns: 1fr;
+  }
+}
