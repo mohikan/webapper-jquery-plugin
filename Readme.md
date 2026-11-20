@@ -21,21 +21,30 @@ When the response is **JSON**, it is a **command list** (`redirect`, toast, moda
 ### What Need Extra
 
 * [Jquery](https://jquery.com/) — required
-* AdminAlert (`alert.js`) — optional: modal / offcanvas / confirm / toast. Without it toasts fall back to `console.log`, confirm falls back to `window.confirm`, modal & offcanvas do not work.
+* **AdminAlert** (`alert/alert.js` + `alert/alert.css` — included in this repo) — optional: modal / offcanvas / confirm / toast. Without it toasts fall back to `console.log`, confirm falls back to `window.confirm`, modal & offcanvas do not work.
+* [Bootstrap](https://getbootstrap.com/) 5 — **CSS only, optional** — only if your own markup uses Bootstrap classes. The plugin and the AdminAlert dialogs do **not** need Bootstrap (dialog styles are scoped inside `alert/alert.css` and never touch your global `.btn`).
 * [Select2](https://select2.github.io/), [Input Mask](http://github.com/RobinHerbots/jquery.inputmask), tableDnD — only needed if you use the `.select2` / `.masked` / `.table_sortable` classes (started automatically after each load)
 
 ### Setup
 
+Page skeleton — the plugin needs a wrapper element (clicks/submits are delegated on it) and a content area where fragments are injected:
+
+```html
+<body id="app">
+  <div id="page-content"><!-- ajax fragments land here --></div>
+</body>
+```
+
 Include javascript libraries
 
 ```html
-<script src="jquery.min.js"></script>
-<script src="webapper.js"></script>
 <!-- optional: AdminAlert for modal/offcanvas/confirm/toast -->
-<script src="alert.js"></script>
+<link rel="stylesheet" href="alert/alert.css">
+<script src="jquery.min.js"></script>
+<script src="webapper/jquery.webapper.js"></script>
+<script src="alert/alert.js"></script>
 <script>
 $(function () {
-    // element wraps the whole page, so clicks/submits are delegated
     $("#app").webapper({
         content: '#page-content',   // area where non-JSON HTML responses are injected
         debug: true
@@ -44,7 +53,26 @@ $(function () {
 </script>
 ```
 
+`alert/alert.css` defines fallback values for the CSS variables it needs — load it **before** your own theme stylesheet so your theme wins. Dialog icons use [Material Symbols Outlined](https://fonts.google.com/icons):
+
+```html
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&display=block">
+```
+
 Double initialization is guarded (`webapper-initialized`).
+
+### Server side
+
+Every request from the plugin carries `X-Requested-With: XMLHttpRequest` (link GETs, form POSTs, `load` GETs). Your backend decides the response type:
+
+| Request | Response |
+|---|---|
+| Action (form submit / command link) | **JSON command list** (`redirect` / `notification` / `load` / `render` / `form_errors` ...) |
+| `load` GET and non-JSON link GET | **HTML fragment only** — no full layout, injected into `content` |
+| `target="modal"` / `target="overlay"` fragment | HTML containing `#modal-form` (or `#offcanvas-form`) |
+| Normal browser request (no header) | full page (normal multi-page rendering) |
+
+If the body parses as JSON (see quirks) it is executed as commands; otherwise it is treated as HTML.
 
 ### Options
 
@@ -278,7 +306,7 @@ $("#app").webapper({
 
 ### AdminAlert contract (optional)
 
-The plugin calls these when `window.AdminAlert` exists:
+AdminAlert ships with this repo (`alert/alert.js` + `alert/alert.css`). The plugin calls these when `window.AdminAlert` exists:
 
 ```javascript
 AdminAlert[type]('', message)                 // success | error | warning | info — toast
