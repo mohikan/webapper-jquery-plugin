@@ -39,8 +39,10 @@
   --sidebar-collapsed-width: 70px;
 }
 
-/* Buttons used by AdminAlert dialogs (subset of the panel style.css) */
-.btn {
+/* Buttons used by AdminAlert dialogs — scoped to dialogs so they never
+   override your framework's global .btn styles (Bootstrap safe). */
+.modal-box .btn,
+.offcanvas .btn {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
@@ -54,21 +56,25 @@
   transition: all var(--transition-fast);
 }
 
-.btn-primary {
+.modal-box .btn-primary,
+.offcanvas .btn-primary {
   background: var(--color-primary);
   color: white;
 }
 
-.btn-primary:hover {
+.modal-box .btn-primary:hover,
+.offcanvas .btn-primary:hover {
   background: var(--color-primary-hover);
 }
 
-.btn-danger {
+.modal-box .btn-danger,
+.offcanvas .btn-danger {
   background: var(--color-danger);
   color: white;
 }
 
-.btn-text {
+.modal-box .btn-text,
+.offcanvas .btn-text {
   background: none;
   border: none;
   color: var(--color-text-secondary);
@@ -81,12 +87,18 @@
   transition: all var(--transition-fast);
 }
 
-.btn-text:hover {
+.modal-box .btn-text:hover,
+.offcanvas .btn-text:hover {
   background: var(--color-bg);
   color: var(--color-text);
 }
 
-.text-muted { color: var(--color-text-secondary); }
+.modal-box .text-muted,
+.offcanvas .text-muted { color: var(--color-text-secondary); }
+
+/* form validation messages (webapper marks fields inside dialogs) */
+.modal-box .text-danger,
+.offcanvas .text-danger { color: var(--color-danger); }
 
 /* --- toast / modal / offcanvas (verbatim from the panel toast.css) --- */
 
